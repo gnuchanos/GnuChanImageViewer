@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=GnuChan Image Viewer
+Comment=Browse, inspect and edit images
+Exec=gnuchan-image-viewer %F
+Icon=image-x-generic
+Terminal=false
+Categories=Graphics;Viewer;
+MimeType=image/jpeg;image/png;image/gif;image/bmp;image/webp;image/tiff;image/svg+xml;
