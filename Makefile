@@ -10,9 +10,9 @@ PREFIX ?= /usr/local
 
 all: build
 
-build: $(BUILD_DIR)/gnuchan-image-viewer
+build: $(BUILD_DIR)/GnuChanImageViewer
 
-$(BUILD_DIR)/gnuchan-image-viewer: src/main.cpp src/image_core.cpp src/image_core.hpp
+$(BUILD_DIR)/GnuChanImageViewer: src/main.cpp src/image_core.cpp src/image_core.hpp
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) src/main.cpp src/image_core.cpp -o $@ $(LDLIBS)
 
@@ -20,12 +20,12 @@ $(BUILD_DIR)/image_core_tests: tests/test_image_core.cpp src/image_core.cpp src/
 	mkdir -p $(BUILD_DIR)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) tests/test_image_core.cpp src/image_core.cpp -o $@ $(LDLIBS)
 
-test: $(BUILD_DIR)/gnuchan-image-viewer $(BUILD_DIR)/image_core_tests
+test: $(BUILD_DIR)/GnuChanImageViewer $(BUILD_DIR)/image_core_tests
 	$(BUILD_DIR)/image_core_tests
-	xvfb-run -a $(BUILD_DIR)/gnuchan-image-viewer --smoke-test
+	xvfb-run -a $(BUILD_DIR)/GnuChanImageViewer --smoke-test
 
 install: build
-	install -Dm755 $(BUILD_DIR)/gnuchan-image-viewer $(DESTDIR)$(PREFIX)/bin/gnuchan-image-viewer
+	install -Dm755 $(BUILD_DIR)/GnuChanImageViewer $(DESTDIR)$(PREFIX)/bin/GnuChanImageViewer
 	install -Dm644 data/gnuchan-image-viewer.desktop $(DESTDIR)$(PREFIX)/share/applications/gnuchan-image-viewer.desktop
 
 clean:

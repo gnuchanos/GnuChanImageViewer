@@ -38,7 +38,7 @@ make test
 `make test` compiles the C++17 application and core tests, runs the test suite, then opens and closes the GTK application under Xvfb as a GUI smoke test. CMake users may also configure with `cmake -S . -B build && cmake --build build && ctest --test-dir build --output-on-failure`. To launch:
 
 ```sh
-build/gnuchan-image-viewer [image-or-directory ...]
+build/GnuChanImageViewer [image-or-directory ...]
 ```
 
 To install into the configured system prefix:

@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=GnuChan Image Viewer
+Name=GnuChanImageViewer
 Comment=Browse, inspect and edit images
-Exec=gnuchan-image-viewer %F
+Exec=GnuChanImageViewer %F
 Icon=image-x-generic
 Terminal=false
 Categories=Graphics;Viewer;
