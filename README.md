@@ -10,6 +10,8 @@ A lightweight Linux desktop image viewer built with **GTK 3** and **GdkPixbuf**.
 - Save edited pixels with the installed GdkPixbuf encoders, copy the displayed image to the clipboard, or set a GNOME wallpaper using `gsettings` (or `feh` on other desktops).
 - View dimensions, file size, detected format, transparency, animation state, common JPEG EXIF fields, and detected embedded ICC/sRGB profile markers. Transparency is shown over a checkerboard.
 - Rename and delete files, with confirmation before permanent deletion.
+- Set the initial window size in `~/.config/GnuChanImageViewer/config.conf`;
+  GnuChanSettings edits the same `[General]` key-file.
 - Keyboard shortcuts: `←`/`→` previous/next, `+`/`-` zoom, `0` fit, `F11` fullscreen, `r`/`R` rotate, `h`/`v` flip, `c` then drag and `Enter` to crop, `Space` slideshow, `i` metadata, `Ctrl+O` open, `Ctrl+S` save, `Ctrl+C` copy, `Delete` delete, `Esc` cancel crop/leave fullscreen.
 
 ## Honest format support
@@ -35,7 +37,12 @@ make
 make test
 ```
 
-`make test` compiles the C++17 application and core tests, runs the test suite, then opens and closes the GTK application under Xvfb as a GUI smoke test. CMake users may also configure with `cmake -S . -B build && cmake --build build && ctest --test-dir build --output-on-failure`. To launch:
+`make test` compiles the C++17 application and core tests, checks config parsing
+and size validation, then opens and closes the GTK application under Xvfb (or
+the active X display if `xvfb-run` is unavailable) as a GUI smoke test. CMake
+users may also configure with
+`cmake -S . -B build && cmake --build build && ctest --test-dir build --output-on-failure`.
+To launch:
 
 ```sh
 build/GnuChanImageViewer [image-or-directory ...]

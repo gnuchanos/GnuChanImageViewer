@@ -22,11 +22,26 @@ $(BUILD_DIR)/image_core_tests: tests/test_image_core.cpp src/image_core.cpp src/
 
 test: $(BUILD_DIR)/GnuChanImageViewer $(BUILD_DIR)/image_core_tests
 	$(BUILD_DIR)/image_core_tests
-	xvfb-run -a $(BUILD_DIR)/GnuChanImageViewer --smoke-test
+	mkdir -p $(BUILD_DIR)/test-config/GnuChanImageViewer
+	rm -f $(BUILD_DIR)/test-config/GnuChanImageViewer/config.conf
+	test "$$(XDG_CONFIG_HOME=$(abspath $(BUILD_DIR)/test-config) $(BUILD_DIR)/GnuChanImageViewer --check-config)" = "Config OK: 1100 x 760"
+	printf '[General]\nWindowWidth=1280\nWindowHeight=900\n' > $(BUILD_DIR)/test-config/GnuChanImageViewer/config.conf
+	test "$$(XDG_CONFIG_HOME=$(abspath $(BUILD_DIR)/test-config) $(BUILD_DIR)/GnuChanImageViewer --check-config)" = "Config OK: 1280 x 900"
+	printf '[General]\nWindowWidth=400\nWindowHeight=900\n' > $(BUILD_DIR)/test-config/GnuChanImageViewer/config.conf
+	! XDG_CONFIG_HOME=$(abspath $(BUILD_DIR)/test-config) $(BUILD_DIR)/GnuChanImageViewer --check-config
+	printf '[General]\nWindowWidth=1100\nWindowHeight=760\n' > $(BUILD_DIR)/test-config/GnuChanImageViewer/config.conf
+	@if command -v xvfb-run >/dev/null 2>&1 && [ -x "$$(command -v xvfb-run)" ]; then \
+		XDG_CONFIG_HOME=$(abspath $(BUILD_DIR)/test-config) xvfb-run -a $(BUILD_DIR)/GnuChanImageViewer --smoke-test; \
+	elif [ -n "$$DISPLAY" ]; then \
+		XDG_CONFIG_HOME=$(abspath $(BUILD_DIR)/test-config) $(BUILD_DIR)/GnuChanImageViewer --smoke-test; \
+	else \
+		echo "error: xvfb-run or an active DISPLAY is required for the GUI smoke test" >&2; exit 1; \
+	fi
 
 install: build
 	install -Dm755 $(BUILD_DIR)/GnuChanImageViewer $(DESTDIR)$(PREFIX)/bin/GnuChanImageViewer
 	install -Dm644 data/gnuchan-image-viewer.desktop $(DESTDIR)$(PREFIX)/share/applications/gnuchan-image-viewer.desktop
+	install -Dm644 src/config/config.conf $(DESTDIR)$(PREFIX)/share/gnuchan-image-viewer/config.conf
 
 clean:
 	rm -rf $(BUILD_DIR)

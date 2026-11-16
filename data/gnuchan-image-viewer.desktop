@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=GnuChanImageViewer
+Name=GnuChan Image Viewer
 Comment=Browse, inspect and edit images
 Exec=GnuChanImageViewer %F
 Icon=image-x-generic

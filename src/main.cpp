@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -23,6 +24,8 @@ struct Viewer {
     GdkPixbufAnimationIter* animation_iter = nullptr;
     std::vector<fs::path> paths;
     std::size_t index = 0;
+    int window_width = 1100;
+    int window_height = 760;
     guint animation_timer = 0;
     guint slideshow_timer = 0;
     bool fit = true;
@@ -43,6 +46,75 @@ struct Viewer {
 };
 
 namespace {
+
+bool load_user_settings(Viewer* viewer, std::string& error) {
+    const fs::path path = fs::path(g_get_user_config_dir()) /
+                          "GnuChanImageViewer" / "config.conf";
+    GKeyFile* key_file = g_key_file_new();
+    GError* load_error = nullptr;
+    if (!g_key_file_load_from_file(key_file, path.c_str(), G_KEY_FILE_NONE,
+                                   &load_error)) {
+        const bool missing = load_error &&
+            load_error->domain == G_FILE_ERROR &&
+            load_error->code == G_FILE_ERROR_NOENT;
+        if (!missing) {
+            error = load_error ? load_error->message : "unable to read settings";
+            g_clear_error(&load_error);
+            g_key_file_unref(key_file);
+            return false;
+        }
+        g_clear_error(&load_error);
+        g_key_file_unref(key_file);
+        return true;
+    }
+
+    int width = viewer->window_width;
+    int height = viewer->window_height;
+    const struct { const char* key; int minimum; int maximum; int* value; } fields[] = {
+        {"WindowWidth", 640, 3840, &width},
+        {"WindowHeight", 480, 2160, &height},
+    };
+    for (const auto& field : fields) {
+        GError* value_error = nullptr;
+        if (!g_key_file_has_key(key_file, "General", field.key, &value_error)) {
+            if (value_error) {
+                const bool missing =
+                    value_error->domain == G_KEY_FILE_ERROR &&
+                    (value_error->code == G_KEY_FILE_ERROR_KEY_NOT_FOUND ||
+                     value_error->code == G_KEY_FILE_ERROR_GROUP_NOT_FOUND);
+                if (missing) {
+                    g_clear_error(&value_error);
+                    continue;
+                }
+                error = value_error->message;
+                g_clear_error(&value_error);
+                g_key_file_unref(key_file);
+                return false;
+            }
+            continue;
+        }
+        const gint parsed = g_key_file_get_integer(
+            key_file, "General", field.key, &value_error);
+        if (value_error) {
+            error = value_error->message;
+            g_clear_error(&value_error);
+            g_key_file_unref(key_file);
+            return false;
+        }
+        if (parsed < field.minimum || parsed > field.maximum) {
+            error = std::string(field.key) + " must be between " +
+                    std::to_string(field.minimum) + " and " +
+                    std::to_string(field.maximum);
+            g_key_file_unref(key_file);
+            return false;
+        }
+        *field.value = parsed;
+    }
+    g_key_file_unref(key_file);
+    viewer->window_width = width;
+    viewer->window_height = height;
+    return true;
+}
 
 GdkPixbuf* displayed_pixbuf(Viewer* viewer) {
     return viewer->animation ? viewer->frame : viewer->pixbuf;
@@ -362,6 +434,13 @@ void save_as(Viewer* viewer) {
                 show_error(viewer, "Output format unavailable",
                     "No installed GdkPixbuf encoder supports this filename extension. Decodable extensions: " +
                     image::supported_format_list());
+            } else if (format == "webp") {
+                std::string webp_error;
+                if (!image::save_webp(path, source, webp_error)) {
+                    show_error(viewer, "Could not save image", webp_error);
+                } else {
+                    set_status(viewer, "Saved " + path.string() + " (embedded color profiles are not preserved by WebP export).");
+                }
             } else if (!gdk_pixbuf_save(source, path.string().c_str(), format.c_str(), &error, nullptr)) {
                 const std::string message = error ? error->message : "The selected encoder could not save this image.";
                 if (error) g_error_free(error);
@@ -714,7 +793,8 @@ void add_menu(Viewer* viewer, GtkWidget* bar, const char* title,
 GtkWidget* create_window(Viewer* viewer) {
     viewer->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(viewer->window), "GnuChan Image Viewer");
-    gtk_window_set_default_size(GTK_WINDOW(viewer->window), 1100, 760);
+    gtk_window_set_default_size(GTK_WINDOW(viewer->window),
+                                viewer->window_width, viewer->window_height);
     g_signal_connect(viewer->window, "destroy", G_CALLBACK(gtk_main_quit), nullptr);
     g_signal_connect(viewer->window, "key-press-event", G_CALLBACK(key_press), viewer);
 
@@ -827,8 +907,25 @@ GtkWidget* create_window(Viewer* viewer) {
 
 int main(int argc, char** argv) {
     const bool smoke_test = argc > 1 && std::string(argv[1]) == "--smoke-test";
-    gtk_init(&argc, &argv);
     Viewer viewer;
+    std::string config_error;
+    if (!load_user_settings(&viewer, config_error)) {
+        if (argc > 1 && std::string(argv[1]) == "--check-config") {
+            std::fprintf(stderr, "Invalid image viewer settings: %s\n",
+                         config_error.c_str());
+            return 1;
+        }
+        g_warning("Invalid image viewer settings: %s. Using built-in defaults.",
+                  config_error.c_str());
+        viewer.window_width = 1100;
+        viewer.window_height = 760;
+    }
+    if (argc > 1 && std::string(argv[1]) == "--check-config") {
+        std::printf("Config OK: %d x %d\n",
+                    viewer.window_width, viewer.window_height);
+        return 0;
+    }
+    gtk_init(&argc, &argv);
     create_window(&viewer);
     gtk_widget_show_all(viewer.window);
     gtk_widget_hide(viewer.info);
